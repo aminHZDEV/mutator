@@ -207,3 +207,14 @@ def test_java_uses_the_closer_build_file(tmp_path):
     command, cwd = plan_command(tmp_path, source, "java", None)
     assert command == ["gradle", "test"]
     assert cwd == module.resolve()
+
+
+def test_kotlin_uses_the_java_plan(tmp_path):
+    (tmp_path / "build.gradle.kts").write_text("", encoding="utf-8")
+    source = tmp_path / "src" / "main" / "kotlin" / "demo" / "Calc.kt"
+    source.parent.mkdir(parents=True)
+    source.write_text("package demo\n", encoding="utf-8")
+    assert plan_command(tmp_path, source, "kotlin", None) == (["gradle", "test"], tmp_path.resolve())
+    (tmp_path / "pom.xml").write_text("<project/>", encoding="utf-8")
+    command, _cwd = plan_command(tmp_path, source, "kotlin", None)
+    assert command == ["mvn", "-q", "test", "-DexcludeTags=no-mutate"]
