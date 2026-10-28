@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from mutator.functions import form_id, is_private, project_functions, sites_in_file
@@ -299,7 +300,7 @@ class Calc {
     assert len(deleted) == 2
 
 
-def test_kotlin_keeps_internal_public_and_marks_private(tmp_path):
+def test_kotlin_marks_private_and_internal_functions_private(tmp_path):
     source = """package demo
 class Calc {
     private fun hide(x: Int): Boolean = x > 0
@@ -308,7 +309,7 @@ class Calc {
 }
 """
     sites = _sites(tmp_path, "src/main/kotlin/demo/Calc.kt", source)
-    assert {site.form_id for site in sites} == {"defn-/hide", "defn/shared", "defn/open"}
+    assert {site.form_id for site in sites} == {"defn-/hide", "defn-/shared", "defn/open"}
     assert {site.namespace for site in sites} == {"demo.Calc"}
 
 
@@ -362,3 +363,42 @@ fun queue(q: List<Int>?): List<Int> = q
     elvis = next(site for site in sites if site.mutant == "!!")
     assert elvis.original.startswith("\n    ?: listOf")
     assert elvis.description == "?: listOf(1, 2, 3).map { it * 2 }.fil... -> !!"
+
+
+_ISSUE6 = Path(__file__).parent / "fixtures" / "issue6"
+
+
+def _fixture_sites(tmp_path: Path, name: str, relative: str):
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(_ISSUE6 / name, path)
+    sites = sites_in_file(path.read_text(encoding="utf-8"), path, tmp_path, relative)
+    return [(site.name, site.original, site.mutant) for site in sites]
+
+
+def test_the_issue6_class_mutates_the_same_operators_in_java_and_kotlin(tmp_path):
+    java = _fixture_sites(tmp_path, "Calc.java", "src/main/java/demo/Calc.java")
+    kotlin = _fixture_sites(tmp_path, "Calc.kt", "src/main/kotlin/demo/Calc.kt")
+    assert len(java) == 16
+    assert len(kotlin) == 15
+    assert java[:13] == kotlin[:13]
+    assert java[13:] == [("orZero", "!=", "=="), ("orZero", "0", "1"), ("len", "!=", "==")]
+    assert kotlin[13:] == [("orZero", " ?: 0", "!!"), ("orZero", "0", "1")]
+
+
+def test_annotation_arguments_have_no_sites():
+    kotlin = """@file:Suppress("X", level = 1)
+package demo
+@Retry(times = 1, enabled = true)
+fun g(@Max(1) x: Int): Int {
+    return 2
+}
+"""
+    java = """class A {
+  @Retry(times = 1, enabled = true)
+  int g(@Max(1) int x) { return x > 0 ? 1 : 0; }
+}
+"""
+    assert discover_raw(kotlin, "kotlin", "G.kt") == []
+    java_sites = [(site.original, site.mutant) for site in discover_raw(java, "java", "A.java")]
+    assert java_sites == [(">", ">="), ("0", "1"), ("1", "0"), ("0", "1")]

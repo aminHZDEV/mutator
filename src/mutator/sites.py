@@ -46,6 +46,8 @@ _BINARY_PARENTS = {
 
 _UNARY_PARENTS = {"unary_expression", "unary_operator", "not_operator", "prefix_expression"}
 
+_SKIPPED_SUBTREES = {"ERROR", "annotation", "file_annotation"}
+
 _KOTLIN_RANGES = {"..": "..<", "..<": ".."}
 _LEGACY_RANGES = {"..": "until"}
 
@@ -404,7 +406,7 @@ def _visit(node, data: bytes, language: str, found: list[RawSite]) -> None:
     stack = [node]
     while stack:
         current = stack.pop()
-        if current.type == "ERROR":
+        if current.type in _SKIPPED_SUBTREES:
             continue
         _visit_node(current, data, language, found)
         stack.extend(reversed(current.children))

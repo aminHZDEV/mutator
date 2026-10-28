@@ -85,11 +85,11 @@ uml-viewer loads every `*.edn` file under `.metrics/mutate`. Each file is one na
 | Rust | `crate::module`, or `crate::module::Type` | the function or method name |
 | Python | the dotted module path, or `module.Class` | the function or method name |
 
-`defn-` is Clojure's private form. Elsewhere a private Java method or Kotlin function (`internal` stays public), an unexported Go function, a Python name that starts with `_`, a Rust function that is not `pub`, or a TypeScript `private` / `#` name uses `defn-/`.
+`defn-` is Clojure's private form. Elsewhere a private Java method, a `private` or `internal` Kotlin function, an unexported Go function, a Python name that starts with `_`, a Rust function that is not `pub`, or a TypeScript `private` / `#` name uses `defn-/`.
 
 ## What each language mutates
 
-Tokens inside strings, comments, quoted Clojure forms, and code the grammar cannot parse are left alone. A replacement that does not compile fails the test run and counts as killed.
+Tokens inside strings, comments, quoted Clojure forms, Java and Kotlin annotations, and code the grammar cannot parse are left alone. A replacement that does not compile fails the test run and counts as killed.
 
 | Language | Mutations |
 | --- | --- |

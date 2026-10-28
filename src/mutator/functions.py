@@ -53,8 +53,10 @@ def is_private(language: str, name: str, source: str, start: int, end: int) -> b
     header = _header(source, start, end)
     if language == "clojure":
         return bool(re.match(r"\(defn-", header))
-    if language in {"java", "kotlin"}:
+    if language == "java":
         return bool(re.search(r"\bprivate\b", header))
+    if language == "kotlin":
+        return bool(re.search(r"\b(?:private|internal)\b", header))
     if language == "go":
         return name[:1].islower()
     if language == "python":
